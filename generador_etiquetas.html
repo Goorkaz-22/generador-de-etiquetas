@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Generador de etiquetas de muestras</title>
+<style>
+  :root { --ink:#161616; --muted:#666; --line:#d7d7d7; --panel:#f5f6f7; --accent:#175cd3; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:Arial,Helvetica,sans-serif; color:var(--ink); background:#eef0f3; }
+  header { background:#17212f; color:white; padding:22px max(18px,calc((100% - 1100px)/2)); }
+  header h1 { margin:0 0 6px; font-size:24px; } header p { margin:0; color:#d5dbe4; font-size:14px; }
+  main { max-width:1100px; margin:22px auto; padding:0 16px 32px; display:grid; grid-template-columns:minmax(280px, .9fr) minmax(350px,1.1fr); gap:18px; }
+  .panel { background:white; border:1px solid #e0e3e8; border-radius:12px; padding:18px; box-shadow:0 2px 8px #00000008; min-width:0; }
+  h2 { font-size:17px; margin:0 0 12px; } p.help { color:var(--muted); font-size:13px; line-height:1.5; margin:7px 0 12px; }
+  label { display:block; font-weight:600; font-size:13px; margin:12px 0 6px; }
+  input, select, textarea { font:inherit; width:100%; padding:10px; border:1px solid #c8cdd5; border-radius:7px; background:#fff; }
+  textarea { min-height:140px; resize:vertical; font-family:ui-monospace,SFMono-Regular,Consolas,monospace; font-size:12px; }
+  input[type="checkbox"] { width:auto; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  button { border:0; border-radius:8px; padding:10px 13px; font-weight:700; cursor:pointer; background:#175cd3; color:white; }
+  button.secondary { background:#e9edf3; color:#222; } button.dark { background:#17212f; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  .stats { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  .stat { background:#f1f4f8; border:1px solid #e1e5ec; padding:8px 10px; border-radius:8px; font-size:13px; }
+  .status { font-size:13px; margin-top:10px; white-space:pre-wrap; }
+  .status.error { color:#b42318; } .status.ok { color:#067647; }
+  .preview { background:#e8ebef; padding:12px; border-radius:8px; overflow:auto; }
+  .label-card { background:white; border:2px solid #111; width:100%; max-width:520px; margin:0 auto 12px; padding:0; font-family:Arial,sans-serif; }
+  .label-title { text-align:center; font-weight:800; font-size:20px; line-height:1.15; padding:6px 4px; border-bottom:2px solid #111; }
+  .label-subtitle { text-align:center; font-weight:700; font-size:13px; line-height:1.2; padding:4px 3px; border-bottom:1px solid #111; }
+  .label-line { display:grid; grid-template-columns:118px minmax(0,1fr); align-items:center; font-size:12px; min-height:22px; margin:0; line-height:1.2; overflow-wrap:anywhere; border-bottom:1px solid #d5d5d5; }
+  .label-line strong { display:block; padding:3px 5px; white-space:normal; }
+  .label-line span { padding:3px 5px; }
+  .label-note { font-size:10px; text-align:center; margin-top:8px; font-weight:700; }
+  .hidden { display:none !important; }
+  footer { max-width:1100px; margin:0 auto; padding:0 16px 26px; font-size:12px; color:#5d6570; }
+  @media(max-width:780px) { main { grid-template-columns:1fr; } }
+  @page { size:A4 portrait; margin:8mm; }
+  @media print {
+    body { background:white; }
+    header, main > .panel:first-child, footer, .no-print { display:none !important; }
+    main { display:block; margin:0; padding:0; max-width:none; }
+    main > .panel:last-child { border:0; box-shadow:none; padding:0; }
+    .preview { background:white; padding:0; overflow:visible; }
+    #printLabels { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4mm 5mm; align-items:stretch; }
+    .label-card { width:100%; max-width:none; margin:0; padding:0; break-inside:avoid; page-break-inside:avoid; min-height:34mm; }
+    .label-title { font-size:14pt; padding:2mm 1mm; }
+    .label-subtitle { font-size:8.5pt; padding:1.3mm 1mm; }
+    .label-line { grid-template-columns:27mm minmax(0,1fr); font-size:8.2pt; min-height:6.3mm; }
+    .label-line strong { padding:1mm 1.2mm; }
+    .label-line span { padding:1mm 1.2mm; }
+    .label-note { font-size:7pt; margin-top:2mm; }
+    .label-card { break-inside:avoid; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Generador de etiquetas de muestras</h1>
+  <p>Cargá tu listado, revisá la numeración y prepará las etiquetas para imprimir.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>1. Cargar variedades</h2>
+    <p class="help">Pegá filas copiadas desde Excel (con encabezados) o cargá un archivo CSV. Columnas sugeridas: <b>Expediente</b> y <b>CC-Variedad-lote</b>. También reconoce encabezados como <i>concatenar</i>.</p>
+    <label for="csvFile">Cargar archivo CSV</label>
+    <input id="csvFile" type="file" accept=".csv,text/csv,.txt">
+    <label for="pasteData">O pegá los datos desde Excel</label>
+    <textarea id="pasteData" placeholder="Expediente	CC-Variedad-lote
+260990015106	D4700116-4P080-17698398
+260990015106	D4700119-5P466-20378527"></textarea>
+    <div class="actions">
+      <button id="loadPaste">Procesar datos pegados</button>
+      <button class="secondary" id="loadExample">Cargar ejemplo</button>
+      <button class="secondary" id="clearData">Limpiar</button>
+    </div>
+    <p class="help">Consejo: si tu Excel tiene muchas columnas, copiá solo la columna del expediente y la del código, o exportá a CSV. El orden de las filas se conserva.</p>
+    <h2 style="margin-top:22px">2. Configurar etiqueta</h2>
+    <div class="row">
+      <div><label for="sampleStart">Muestra inicial</label><input id="sampleStart" type="number" min="1" value="1"></div>
+      <div><label for="subStart">Sub-muestra inicial</label><input id="subStart" type="number" min="1" value="1"></div>
+    </div>
+    <label for="sampleName">Texto de Muestra (si aplica)</label>
+    <input id="sampleName" value="" placeholder="Ej. Muestra">
+    <label for="species">Especie</label>
+    <input id="species" value="PIMIENTO">
+    <label for="diagnosis">Texto de diagnóstico</label>
+    <input id="diagnosis" value="Diagnóstico de ToBRFV">
+    <label for="iivPrefix">Etiqueta del expediente</label>
+    <input id="iivPrefix" value="IIV">
+    <label for="ccPrefix">Etiqueta del código</label>
+    <input id="ccPrefix" value="CC-Variedad-lote">
+    <div class="row">
+      <div><label for="cols">Etiquetas por fila</label><select id="cols"><option value="2">2</option><option value="1">1</option><option value="3">3</option></select></div>
+      <div><label for="copies">Copias por registro</label><input id="copies" type="number" min="1" max="20" value="1"></div>
+    </div>
+    <label><input type="checkbox" id="continueSub" checked> Continuar sub-muestra si un expediente reaparece más adelante</label>
+    <p class="help">Si está activado, el expediente A con 3 registros, luego B con 2 y después A otra vez, seguirá A con sub-muestras 4, 5… La muestra general nunca se reinicia.</p>
+    <div class="actions"><button id="generate">Generar etiquetas</button><button class="secondary" id="downloadCsv">Descargar listado resultante (CSV)</button></div>
+    <div id="status" class="status" aria-live="polite"></div>
+  </section>
+  <section class="panel">
+    <div class="no-print">
+      <h2>3. Vista previa</h2>
+      <p class="help">Se muestra una vista previa de las primeras etiquetas. Cuando imprimas, se incluirán todas.</p>
+      <div id="stats" class="stats"></div>
+    </div>
+    <div class="preview"><div id="printLabels"></div></div>
+    <div class="actions no-print">
+      <button id="printBtn" class="dark" disabled>Imprimir etiquetas</button>
+    </div>
+  </section>
+</main>
+<footer>Este archivo funciona localmente en el navegador; los datos no se envían a ningún servidor. Antes de imprimir todas las etiquetas, comprobá una hoja de prueba y verificá el tamaño físico.</footer>
+<script>
+const $ = id => document.getElementById(id);
+let records = [], generated = [];
+function parseDelimited(text) {
+  const firstLine = text.split(/\r?\n/).find(x => x.trim());
+  if (!firstLine) return [];
+  const delimiter = firstLine.includes('\t') ? '\t' : (firstLine.includes(';') ? ';' : ',');
+  const rows = [];
+  let row = [], cell = '', quoted = false;
+  for (let i=0;i<text.length;i++) {
+    const c=text[i], n=text[i+1];
+    if (c === '"' && quoted && n === '"') { cell+='"'; i++; }
+    else if (c === '"') quoted=!quoted;
+    else if (c === delimiter && !quoted) { row.push(cell.trim()); cell=''; }
+    else if ((c === '\n' || c === '\r') && !quoted) {
+      if (c === '\r' && n === '\n') i++;
+      row.push(cell.trim()); if (row.some(v=>v!=='')) rows.push(row);
+      row=[]; cell='';
+    } else cell+=c;
+  }
+  row.push(cell.trim()); if (row.some(v=>v!=='')) rows.push(row);
+  return rows;
+}
+function norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''); }
+function findCol(headers, candidates) {
+  return headers.findIndex(h => candidates.includes(norm(h)) || candidates.some(c=>norm(h).includes(c)));
+}
+function rowsToRecords(rows) {
+  if (!rows.length) return [];
+  const h=rows[0];
+  const expIdx=findCol(h,['expediente','iiv','expedienteiiv']);
+  const codeIdx=findCol(h,['ccvariedadlote','concatenar','codigo','codigovariedad','variedadlote','ccvariedad']);
+  let start=0, e=expIdx, c=codeIdx;
+  if (e>=0 && c>=0) start=1;
+  else {
+    // Fall back to a two-column list with no headers: expediente, code.
+    e=0; c=1; start=0;
+  }
+  return rows.slice(start).map(r=>({expediente:(r[e]||'').trim(), codigo:(r[c]||'').trim()})).filter(r=>r.expediente || r.codigo);
+}
+function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+function showStatus(msg, type='') { $('status').textContent=msg; $('status').className='status '+type; }
+function loadRows(rows) {
+  records=rowsToRecords(rows);
+  generated=[];
+  $('printBtn').disabled=true;
+  $('printLabels').innerHTML='';
+  $('stats').innerHTML='';
+  if (!records.length) { showStatus('No encontré filas válidas. Revisá que haya una columna de expediente y otra de código.', 'error'); return; }
+  showStatus(`Se cargaron ${records.length} registros. Revisá los encabezados y generá las etiquetas.`, 'ok');
+}
+function getRowsFromPaste() { return parseDelimited($('pasteData').value); }
+$('loadPaste').addEventListener('click',()=>loadRows(getRowsFromPaste()));
+$('loadExample').addEventListener('click',()=>{
+  $('pasteData').value='Expediente\tCC-Variedad-lote\n260990015106\tD4700116-4P080-17698398\n260990015106\tD4700119-5P466-20378527\n260990015106\tD4700120-5P467-20378528\n260990015107\tD4700121-5P468-20378529\n260990015107\tD4700122-5P469-20378530';
+  loadRows(getRowsFromPaste());
+});
+$('clearData').addEventListener('click',()=>{ records=[]; generated=[]; $('pasteData').value=''; $('printLabels').innerHTML=''; $('stats').innerHTML=''; $('printBtn').disabled=true; showStatus('Datos eliminados.'); });
+$('csvFile').addEventListener('change', async e=>{
+  const file=e.target.files[0]; if(!file) return;
+  try {
+    const text=await file.text();
+    loadRows(parseDelimited(text));
+  } catch(err) { showStatus('No se pudo leer el archivo. Probá exportarlo como CSV UTF-8.', 'error'); }
+});
+function buildGenerated() {
+  if (!records.length) { showStatus('Primero cargá tus datos.', 'error'); return; }
+  const sampleStart=Math.max(1,parseInt($('sampleStart').value,10)||1);
+  const subStart=Math.max(1,parseInt($('subStart').value,10)||1);
+  const copies=Math.max(1,Math.min(20,parseInt($('copies').value,10)||1));
+  const continueSub=$('continueSub').checked;
+  const counts=new Map();
+  generated=[];
+  records.forEach((r,i)=>{
+    const key=r.expediente || `SIN_EXPEDIENTE_${i+1}`;
+    const previous=counts.get(key)||0;
+    const sub=continueSub ? subStart+previous : subStart+previous;
+    counts.set(key,previous+1);
+    for(let copy=0;copy<copies;copy++) generated.push({
+      muestra:sampleStart+i,
+      submuestra:sub,
+      expediente:r.expediente,
+      codigo:r.codigo,
+      especie:$('species').value.trim(),
+      diagnostico:$('diagnosis').value.trim(),
+      sampleName:$('sampleName').value.trim(),
+      iivPrefix:$('iivPrefix').value.trim()||'IIV',
+      ccPrefix:$('ccPrefix').value.trim()||'CC-Variedad-lote'
+    });
+  });
+  renderLabels();
+  showStatus(`Listo: ${generated.length} etiquetas generadas desde ${records.length} registros.`, 'ok');
+}
+function labelHtml(r) {
+  return `<article class="label-card">
+    <div class="label-title">Muestra de ${escapeHtml(r.especie || 'PIMIENTO')}</div>
+    <div class="label-subtitle">Diagnóstico de ToBRFV con RT-PCR con sonda CP/ MP</div>
+    <div class="label-line"><strong>Sub-muestra :</strong><span>${escapeHtml(r.submuestra)}</span></div>
+    <div class="label-line"><strong>${escapeHtml(r.iivPrefix)} (${escapeHtml(r.expediente)}):</strong><span></span></div>
+    <div class="label-line"><strong>${escapeHtml(r.ccPrefix)}:</strong><span>${escapeHtml(r.codigo)}</span></div>
+  </article>`;
+}
+function renderLabels() {
+  const all=generated.map(labelHtml).join('');
+  $('printLabels').innerHTML=all;
+  $('stats').innerHTML=`<div class="stat"><b>${records.length}</b> registros</div><div class="stat"><b>${generated.length}</b> etiquetas</div><div class="stat"><b>${new Set(records.map(r=>r.expediente)).size}</b> expedientes distintos</div>`;
+  $('printBtn').disabled=!generated.length;
+}
+$('generate').addEventListener('click',buildGenerated);
+$('printBtn').addEventListener('click',()=>window.print());
+$('downloadCsv').addEventListener('click',()=>{
+  if (!generated.length) { showStatus('Generá las etiquetas antes de descargar el CSV.', 'error'); return; }
+  const head=['Muestra','Sub-muestra','Expediente','CC-Variedad-lote','Especie','Diagnóstico'];
+  const lines=[head,...generated.map(r=>[r.muestra,r.submuestra,r.expediente,r.codigo,r.especie,r.diagnostico])].map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  const blob=new Blob(['\ufeff'+lines],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='etiquetas_generadas.csv'; a.click(); URL.revokeObjectURL(a.href);
+});
+</script>
+</body>
+</html>
