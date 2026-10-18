@@ -143,16 +143,41 @@ function findCol(headers, candidates) {
 }
 function rowsToRecords(rows) {
   if (!rows.length) return [];
-  const h=rows[0];
-  const expIdx=findCol(h,['expediente','iiv','expedienteiiv']);
-  const codeIdx=findCol(h,['ccvariedadlote','concatenar','codigo','codigovariedad','variedadlote','ccvariedad']);
-  let start=0, e=expIdx, c=codeIdx;
-  if (e>=0 && c>=0) start=1;
-  else {
-    // Fall back to a two-column list with no headers: expediente, code.
-    e=0; c=1; start=0;
+
+  const h = rows[0];
+
+  const expIdx = findCol(h, [
+    'expediente', 'iiv', 'expedienteiiv'
+  ]);
+
+  const codeIdx = findCol(h, [
+    'ccvariedadlote', 'concatenar', 'codigo',
+    'codigovariedad', 'variedadlote', 'ccvariedad'
+  ]);
+
+  const speciesIdx = findCol(h, [
+    'especie', 'cultivo'
+  ]);
+
+  let start = 0;
+  let e = expIdx;
+  let c = codeIdx;
+  let s = speciesIdx;
+
+  if (e >= 0 && c >= 0) {
+    start = 1;
+  } else {
+    // Lista sin encabezados: expediente y código.
+    e = 0;
+    c = 1;
+    s = -1;
   }
-  return rows.slice(start).map(r=>({expediente:(r[e]||'').trim(), codigo:(r[c]||'').trim()})).filter(r=>r.expediente || r.codigo);
+
+  return rows.slice(start).map(r => ({
+    expediente: (r[e] || '').trim(),
+    codigo: (r[c] || '').trim(),
+    especie: s >= 0 ? (r[s] || '').trim() : ''
+  })).filter(r => r.expediente || r.codigo);
 }
 function escapeHtml(s) { return String(s??'').replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
 function showStatus(msg, type='') { $('status').textContent=msg; $('status').className='status '+type; }
@@ -197,7 +222,7 @@ function buildGenerated() {
       submuestra:sub,
       expediente:r.expediente,
       codigo:r.codigo,
-      especie:$('species').value.trim(),
+      especie:r.especie || $('species').value.trim(),
       diagnostico:$('diagnosis').value.trim(),
       sampleName:$('sampleName').value.trim(),
       iivPrefix:$('iivPrefix').value.trim()||'IIV',
